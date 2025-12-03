@@ -12,50 +12,59 @@
             font-family: 'Inter', sans-serif;
             transition: background-color 0.3s, color 0.3s;
         }
+        /* Ensure specific dynamic colors are marked as used for Tailwind JIT */
+        .text-red-500, .bg-red-500, .border-red-500, 
+        .text-orange-500, .bg-orange-500, .border-orange-500,
+        .text-amber-500, .bg-amber-500, .border-amber-500,
+        .text-green-500, .bg-green-500, .border-green-500,
+        .text-sky-500, .bg-sky-500, .border-sky-500,
+        .text-indigo-500, .bg-indigo-500, .border-indigo-500,
+        .text-purple-500, .bg-purple-500, .border-purple-500 {}
     </style>
     <script>
-        // Tailwind CSS configuration for dark mode and color palette
+        // Tailwind CSS configuration for the Computer Science Theme
         tailwind.config = {
-            darkMode: 'class', // Enables dark mode based on 'dark' class
+            darkMode: 'class', 
             theme: {
                 extend: {
                     colors: {
-                        'primary-blue': '#4F46E5', // Indigo-600
-                        'primary-dark': '#111827', // Gray-900
-                        'secondary-dark': '#1F2937', // Gray-800
-                        'accent-yellow': '#FBBF24', // Amber-400
+                        // CS Theme Colors
+                        'cs-accent': '#00FFFF',      // Electric Cyan (Primary Accent)
+                        'cs-bg-main': '#0D1117',     // Deep Black/Blue (Terminal Background)
+                        'cs-bg-panel': '#161B22',    // Lighter Dark for panels/cards
+                        'cs-text-light': '#E6EDF3',  // Off-white for main text
                     }
                 }
             }
         }
     </script>
 </head>
-<body class="bg-gray-100 dark:bg-primary-dark text-gray-900 dark:text-gray-100">
+<body class="bg-cs-bg-main text-cs-text-light">
 
     <div class="min-h-screen p-4 md:p-8">
         <header class="text-center mb-8 md:mb-12">
-            <h1 class="text-4xl md:text-5xl font-extrabold text-primary-blue mb-2">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-cs-accent mb-2">
                 The OSI Model: 7-Layer Architecture
             </h1>
-            <p class="text-lg text-gray-600 dark:text-gray-400">
-                Click on any layer to explore its function in detail and generate a unique analogy.
+            <p class="text-lg text-gray-400">
+                Click on any layer to explore its function in detail.
             </p>
         </header>
 
         <main class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
             <!-- Layers Navigation Panel -->
-            <div id="layers-panel" class="lg:w-1/3 space-y-3 p-4 bg-white dark:bg-secondary-dark rounded-xl shadow-2xl h-fit sticky top-8">
+            <div id="layers-panel" class="lg:w-1/3 space-y-3 p-4 bg-cs-bg-panel rounded-xl shadow-2xl h-fit sticky top-8 border border-gray-700">
                 <!-- Layers will be populated here by JavaScript -->
             </div>
 
             <!-- Details Content Panel -->
             <div class="lg:w-2/3">
-                <div id="details-content" class="p-6 md:p-8 bg-white dark:bg-secondary-dark rounded-xl shadow-2xl transition-all duration-300 min-h-[400px]">
+                <div id="details-content" class="p-6 md:p-8 bg-cs-bg-panel rounded-xl shadow-2xl transition-all duration-300 min-h-[400px] border border-gray-700">
                     <!-- Details will be displayed here -->
                     <div class="flex flex-col items-center justify-center h-full text-center">
-                        <svg class="w-16 h-16 text-primary-blue mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1v-3m-6 0h6m-5 0v-2a1 1 0 011-1h2a1 1 0 011 1v2m-6 0H9"></path></svg>
-                        <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-300">Select a Layer</h2>
-                        <p class="text-gray-500 dark:text-gray-400 mt-2">
+                        <svg class="w-16 h-16 text-cs-accent mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1v-3m-6 0h6m-5 0v-2a1 1 0 011-1h2a1 1 0 011 1v2m-6 0H9"></path></svg>
+                        <h2 class="text-2xl font-semibold text-cs-text-light">Select a Layer</h2>
+                        <p class="text-gray-400 mt-2">
                             Choose any of the seven layers on the left to see what it does.
                         </p>
                     </div>
@@ -127,99 +136,6 @@
 
         let activeLayer = null;
 
-        // LLM API Configuration (Leave API key empty for Canvas environment)
-        const apiKey = ""; 
-        const modelName = "gemini-2.5-flash-preview-09-2025";
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-
-        /**
-         * Helper function for fetch with exponential backoff.
-         */
-        async function exponentialBackoffFetch(url, options, retries = 5, delay = 1000) {
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    if (!response.ok) {
-                        if (response.status === 429 && i < retries - 1) { // Too Many Requests
-                            console.warn(`Rate limit hit. Retrying in ${delay / 1000}s...`);
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                            delay *= 2; // Exponential increase
-                            continue;
-                        }
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response;
-                } catch (error) {
-                    if (i === retries - 1) {
-                        console.error("Fetch failed after all retries:", error);
-                        throw error;
-                    }
-                    console.warn(`Fetch error. Retrying in ${delay / 1000}s...`);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    delay *= 2;
-                }
-            }
-        }
-
-        /**
-         * Calls the Gemini API to generate a real-world analogy for the given OSI layer.
-         * @param {string} layerName - The name of the layer (e.g., "Transport").
-         * @param {string} layerDescription - The layer's description to ground the request.
-         */
-        async function generateAnalogy(layerName, layerDescription) {
-            const analogyOutput = document.getElementById('analogy-output');
-            const analogyButton = document.getElementById('analogy-button');
-            
-            // Set loading state
-            analogyOutput.innerHTML = `<div class="flex items-center space-x-2 p-4 text-primary-blue dark:text-white bg-primary-blue/10 dark:bg-primary-blue/30 rounded-lg">
-                <svg class="animate-spin h-5 w-5 text-primary-blue dark:text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Generating analogy...</span>
-            </div>`;
-            analogyButton.disabled = true;
-            analogyButton.classList.add('opacity-50', 'cursor-not-allowed');
-
-            const systemPrompt = "You are an expert networking tutor. Provide a very concise, single-paragraph, real-world analogy for the function of the provided OSI layer. Use simple language suitable for a beginner. Do not mention 'OSI Model' or 'networking' terms in the analogy itself.";
-            
-            const userQuery = `Generate a real-world analogy for the ${layerName} Layer of the OSI Model, based on its function: "${layerDescription}". The analogy should be easy to understand and brief.`;
-
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-            };
-
-            try {
-                const response = await exponentialBackoffFetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-                const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate an analogy right now. Please try again.";
-                
-                analogyOutput.innerHTML = `
-                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg mt-4 border-l-4 border-primary-blue shadow-inner">
-                        <p class="font-semibold text-primary-blue dark:text-primary-blue mb-1">💡 Analogy:</p>
-                        <p class="text-gray-800 dark:text-gray-200">${generatedText}</p>
-                    </div>
-                `;
-
-            } catch (error) {
-                console.error("Gemini API call failed:", error);
-                analogyOutput.innerHTML = `
-                    <div class="bg-red-100 dark:bg-red-900/50 p-4 rounded-lg mt-4 border-l-4 border-red-500 text-red-800 dark:text-red-300">
-                        <p>Error: Failed to fetch analogy. Please check your network connection.</p>
-                    </div>
-                `;
-            } finally {
-                analogyButton.disabled = false;
-                analogyButton.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-        }
-
         /**
          * Generates the HTML card for a single layer.
          * @param {Object} layer - The layer data object.
@@ -227,13 +143,14 @@
          * @returns {string} The HTML string for the layer card.
          */
         function generateLayerCard(layer, isActive) {
+            // New CS Theme Classes
             const activeClasses = isActive 
-                ? 'bg-primary-blue text-white shadow-primary-blue/50 dark:bg-primary-blue dark:text-white' 
-                : 'bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700/50 text-gray-800 dark:text-gray-300 shadow-lg';
+                ? 'bg-cs-accent text-cs-bg-main shadow-cs-accent/50' 
+                : 'bg-cs-bg-panel hover:bg-gray-800 text-cs-text-light shadow-lg';
             
-            // Note: The Tailwind JIT compiler needs the full classes to be present, so using full color names here
+            // Layer-specific color classes for borders and badges remain the same
             const pduBadgeClasses = `inline-flex items-center rounded-full px-3 py-1 text-xs font-medium`;
-            const colorClasses = `bg-${layer.color} bg-opacity-10 text-${layer.color} dark:bg-opacity-20`;
+            const colorClasses = `bg-${layer.color} bg-opacity-20 text-${layer.color}`; // Increased opacity for dark theme contrast
 
             return `
                 <div id="layer-card-${layer.id}" onclick="showLayerDetails(${layer.id})" 
@@ -260,36 +177,27 @@
             
             if (!layer) return;
 
-            // 1. Update the content, including the new button and output area
+            // 1. Update the content
             detailsContent.innerHTML = `
                 <h2 class="text-4xl font-extrabold text-${layer.color} mb-4">${layer.name} Layer</h2>
-                <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                <div class="mb-6">
                     <span class="inline-block px-4 py-1 text-sm font-semibold rounded-full bg-${layer.color} bg-opacity-20 text-${layer.color}">
                         PDU: ${layer.pdu}
                     </span>
-                    <button id="analogy-button" 
-                            onclick="generateAnalogy('${layer.name}', \`${layer.description.replace(/'/g, "\\'")}\`)" 
-                            class="flex items-center justify-center px-4 py-2 bg-primary-blue text-white text-sm font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 transform hover:scale-[1.02] active:scale-[0.98]">
-                        <span class="text-lg mr-2">✨</span> Generate Analogy
-                    </button>
                 </div>
                 
-                <p class="text-lg text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
+                <p class="text-lg text-cs-text-light mb-6 leading-relaxed">
                     ${layer.description}
                 </p>
 
-                <div id="analogy-output" class="mb-6 min-h-[50px]">
-                    <!-- Analogy will be displayed here -->
-                </div>
-
-                <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
+                <h3 class="text-2xl font-bold text-cs-accent border-b border-gray-700 pb-2 mb-4">
                     Key Functions
                 </h3>
                 <ul class="space-y-3 list-none p-0">
                     ${layer.functions.map(func => `
                         <li class="flex items-start">
                             <svg class="w-5 h-5 mt-1 mr-3 text-${layer.color} flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            <span class="text-gray-700 dark:text-gray-300">${func}</span>
+                            <span class="text-cs-text-light">${func}</span>
                         </li>
                     `).join('')}
                 </ul>
@@ -297,14 +205,18 @@
             
             // 2. Update the active state of layer cards
             document.querySelectorAll('.layer-card').forEach(card => {
-                card.classList.remove('bg-primary-blue', 'text-white', 'shadow-primary-blue/50', 'dark:bg-primary-blue', 'dark:text-white');
-                card.classList.add('bg-white', 'hover:bg-gray-50', 'dark:bg-gray-800', 'dark:hover:bg-gray-700/50', 'text-gray-800', 'dark:text-gray-300', 'shadow-lg');
+                // Remove active classes
+                card.classList.remove('bg-cs-accent', 'text-cs-bg-main', 'shadow-cs-accent/50');
+                // Add inactive classes
+                card.classList.add('bg-cs-bg-panel', 'hover:bg-gray-800', 'text-cs-text-light', 'shadow-lg');
             });
 
             const currentCard = document.getElementById(`layer-card-${layerId}`);
             if (currentCard) {
-                currentCard.classList.add('bg-primary-blue', 'text-white', 'shadow-primary-blue/50', 'dark:bg-primary-blue', 'dark:text-white');
-                currentCard.classList.remove('bg-white', 'hover:bg-gray-50', 'dark:bg-gray-800', 'dark:hover:bg-gray-700/50', 'text-gray-800', 'dark:text-gray-300', 'shadow-lg');
+                // Add active classes
+                currentCard.classList.add('bg-cs-accent', 'text-cs-bg-main', 'shadow-cs-accent/50');
+                // Remove inactive classes
+                currentCard.classList.remove('bg-cs-bg-panel', 'hover:bg-gray-800', 'text-cs-text-light', 'shadow-lg');
             }
 
             activeLayer = layerId;
