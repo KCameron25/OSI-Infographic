@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSI Model Interactive Infographic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font and dark theme configuration -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+    </style>
+    <script>
+        // Tailwind CSS configuration for dark mode and color palette
+        tailwind.config = {
+            darkMode: 'class', // Enables dark mode based on 'dark' class
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#4F46E5', // Indigo-600
+                        'primary-dark': '#111827', // Gray-900
+                        'secondary-dark': '#1F2937', // Gray-800
+                        'accent-yellow': '#FBBF24', // Amber-400
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-primary-dark text-gray-900 dark:text-gray-100">
+
+    <div class="min-h-screen p-4 md:p-8">
+        <header class="text-center mb-8 md:mb-12">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-primary-blue mb-2">
+                The OSI Model: 7-Layer Architecture
+            </h1>
+            <p class="text-lg text-gray-600 dark:text-gray-400">
+                Click on any layer to explore its function in detail and generate a unique analogy.
+            </p>
+        </header>
+
+        <main class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
+            <!-- Layers Navigation Panel -->
+            <div id="layers-panel" class="lg:w-1/3 space-y-3 p-4 bg-white dark:bg-secondary-dark rounded-xl shadow-2xl h-fit sticky top-8">
+                <!-- Layers will be populated here by JavaScript -->
+            </div>
+
+            <!-- Details Content Panel -->
+            <div class="lg:w-2/3">
+                <div id="details-content" class="p-6 md:p-8 bg-white dark:bg-secondary-dark rounded-xl shadow-2xl transition-all duration-300 min-h-[400px]">
+                    <!-- Details will be displayed here -->
+                    <div class="flex flex-col items-center justify-center h-full text-center">
+                        <svg class="w-16 h-16 text-primary-blue mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1v-3m-6 0h6m-5 0v-2a1 1 0 011-1h2a1 1 0 011 1v2m-6 0H9"></path></svg>
+                        <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-300">Select a Layer</h2>
+                        <p class="text-gray-500 dark:text-gray-400 mt-2">
+                            Choose any of the seven layers on the left to see what it does.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Data structure for the 7 layers of the OSI Model
+        const osiLayers = [
+            {
+                id: 7,
+                name: "Application",
+                pdu: "Data",
+                color: "red-500",
+                description: "The layer that provides the interface between applications and the network. It handles network services like web browsing (HTTP), email (SMTP), and file transfer (FTP). This is what the end-user interacts with.",
+                functions: ["User Interface", "Network Services (e.g., HTTP, DNS, FTP)", "Data Interaction"]
+            },
+            {
+                id: 6,
+                name: "Presentation",
+                pdu: "Data",
+                color: "orange-500",
+                description: "Responsible for data formatting and representation. This includes translation between different data formats, encryption/decryption, and data compression/decompression to ensure compatibility between communicating systems.",
+                functions: ["Data Formatting/Translation", "Encryption/Decryption (SSL/TLS)", "Data Compression"]
+            },
+            {
+                id: 5,
+                name: "Session",
+                pdu: "Data",
+                color: "amber-500",
+                description: "Manages and controls the connections (sessions) between two communicating applications. It establishes, maintains, and synchronizes the dialogue, and handles graceful termination of the connection.",
+                functions: ["Session Establishment and Termination", "Synchronization and Checkpointing", "Dialogue Control"]
+            },
+            {
+                id: 4,
+                name: "Transport",
+                pdu: "Segments / Datagrams",
+                color: "green-500",
+                description: "Provides reliable (TCP) or unreliable (UDP) data transfer service to the upper layers. It handles segmentation of data, flow control, error control, and port addressing (multiplexing) to ensure data reaches the correct application.",
+                functions: ["Segmentation and Reassembly", "Connection Management (TCP)", "Flow Control and Error Detection"]
+            },
+            {
+                id: 3,
+                name: "Network",
+                pdu: "Packets",
+                color: "sky-500",
+                description: "Responsible for logical addressing (IP addresses) and routing data packets across different networks (inter-networking). It determines the best path for data delivery from source to destination.",
+                functions: ["Logical Addressing (IP)", "Routing (Path Determination)", "Packet Forwarding"]
+            },
+            {
+                id: 2,
+                name: "Data Link",
+                pdu: "Frames",
+                color: "indigo-500",
+                description: "Handles the physical addressing (MAC addresses) and error detection/correction within a single network segment (link). It is often split into two sublayers: Logical Link Control (LLC) and Media Access Control (MAC).",
+                functions: ["Physical Addressing (MAC)", "Error Detection (CRC)", "Media Access Control"]
+            },
+            {
+                id: 1,
+                name: "Physical",
+                pdu: "Bits",
+                color: "purple-500",
+                description: "This is the physical and electrical means of transmitting the raw bit stream (0s and 1s) across the network medium. It defines hardware, cabling, voltage levels, and data rates.",
+                functions: ["Transmission of Raw Bits", "Physical Topology", "Hardware Interfaces (Cables, Hubs)"]
+            }
+        ].sort((a, b) => b.id - a.id); // Sort descending (7 down to 1)
+
+        let activeLayer = null;
+
+        // LLM API Configuration (Leave API key empty for Canvas environment)
+        const apiKey = ""; 
+        const modelName = "gemini-2.5-flash-preview-09-2025";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+        /**
+         * Helper function for fetch with exponential backoff.
+         */
+        async function exponentialBackoffFetch(url, options, retries = 5, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        if (response.status === 429 && i < retries - 1) { // Too Many Requests
+                            console.warn(`Rate limit hit. Retrying in ${delay / 1000}s...`);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            delay *= 2; // Exponential increase
+                            continue;
+                        }
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response;
+                } catch (error) {
+                    if (i === retries - 1) {
+                        console.error("Fetch failed after all retries:", error);
+                        throw error;
+                    }
+                    console.warn(`Fetch error. Retrying in ${delay / 1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        /**
+         * Calls the Gemini API to generate a real-world analogy for the given OSI layer.
+         * @param {string} layerName - The name of the layer (e.g., "Transport").
+         * @param {string} layerDescription - The layer's description to ground the request.
+         */
+        async function generateAnalogy(layerName, layerDescription) {
+            const analogyOutput = document.getElementById('analogy-output');
+            const analogyButton = document.getElementById('analogy-button');
+            
+            // Set loading state
+            analogyOutput.innerHTML = `<div class="flex items-center space-x-2 p-4 text-primary-blue dark:text-white bg-primary-blue/10 dark:bg-primary-blue/30 rounded-lg">
+                <svg class="animate-spin h-5 w-5 text-primary-blue dark:text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Generating analogy...</span>
+            </div>`;
+            analogyButton.disabled = true;
+            analogyButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const systemPrompt = "You are an expert networking tutor. Provide a very concise, single-paragraph, real-world analogy for the function of the provided OSI layer. Use simple language suitable for a beginner. Do not mention 'OSI Model' or 'networking' terms in the analogy itself.";
+            
+            const userQuery = `Generate a real-world analogy for the ${layerName} Layer of the OSI Model, based on its function: "${layerDescription}". The analogy should be easy to understand and brief.`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            try {
+                const response = await exponentialBackoffFetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate an analogy right now. Please try again.";
+                
+                analogyOutput.innerHTML = `
+                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg mt-4 border-l-4 border-primary-blue shadow-inner">
+                        <p class="font-semibold text-primary-blue dark:text-primary-blue mb-1">💡 Analogy:</p>
+                        <p class="text-gray-800 dark:text-gray-200">${generatedText}</p>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error("Gemini API call failed:", error);
+                analogyOutput.innerHTML = `
+                    <div class="bg-red-100 dark:bg-red-900/50 p-4 rounded-lg mt-4 border-l-4 border-red-500 text-red-800 dark:text-red-300">
+                        <p>Error: Failed to fetch analogy. Please check your network connection.</p>
+                    </div>
+                `;
+            } finally {
+                analogyButton.disabled = false;
+                analogyButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        /**
+         * Generates the HTML card for a single layer.
+         * @param {Object} layer - The layer data object.
+         * @param {boolean} isActive - Whether the layer is currently selected.
+         * @returns {string} The HTML string for the layer card.
+         */
+        function generateLayerCard(layer, isActive) {
+            const activeClasses = isActive 
+                ? 'bg-primary-blue text-white shadow-primary-blue/50 dark:bg-primary-blue dark:text-white' 
+                : 'bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700/50 text-gray-800 dark:text-gray-300 shadow-lg';
+            
+            // Note: The Tailwind JIT compiler needs the full classes to be present, so using full color names here
+            const pduBadgeClasses = `inline-flex items-center rounded-full px-3 py-1 text-xs font-medium`;
+            const colorClasses = `bg-${layer.color} bg-opacity-10 text-${layer.color} dark:bg-opacity-20`;
+
+            return `
+                <div id="layer-card-${layer.id}" onclick="showLayerDetails(${layer.id})" 
+                     class="layer-card p-4 rounded-xl cursor-pointer transition-all duration-200 border-l-4 border-${layer.color} ${activeClasses}">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-bold">
+                            ${layer.id}. ${layer.name} Layer
+                        </h3>
+                        <span class="${pduBadgeClasses} ${colorClasses}">
+                            ${layer.pdu}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Updates the main details panel with content for the selected layer.
+         * @param {number} layerId - The ID of the layer to display (1-7).
+         */
+        function showLayerDetails(layerId) {
+            const layer = osiLayers.find(l => l.id === layerId);
+            const detailsContent = document.getElementById('details-content');
+            
+            if (!layer) return;
+
+            // 1. Update the content, including the new button and output area
+            detailsContent.innerHTML = `
+                <h2 class="text-4xl font-extrabold text-${layer.color} mb-4">${layer.name} Layer</h2>
+                <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                    <span class="inline-block px-4 py-1 text-sm font-semibold rounded-full bg-${layer.color} bg-opacity-20 text-${layer.color}">
+                        PDU: ${layer.pdu}
+                    </span>
+                    <button id="analogy-button" 
+                            onclick="generateAnalogy('${layer.name}', \`${layer.description.replace(/'/g, "\\'")}\`)" 
+                            class="flex items-center justify-center px-4 py-2 bg-primary-blue text-white text-sm font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 transform hover:scale-[1.02] active:scale-[0.98]">
+                        <span class="text-lg mr-2">✨</span> Generate Analogy
+                    </button>
+                </div>
+                
+                <p class="text-lg text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
+                    ${layer.description}
+                </p>
+
+                <div id="analogy-output" class="mb-6 min-h-[50px]">
+                    <!-- Analogy will be displayed here -->
+                </div>
+
+                <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
+                    Key Functions
+                </h3>
+                <ul class="space-y-3 list-none p-0">
+                    ${layer.functions.map(func => `
+                        <li class="flex items-start">
+                            <svg class="w-5 h-5 mt-1 mr-3 text-${layer.color} flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="text-gray-700 dark:text-gray-300">${func}</span>
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+            
+            // 2. Update the active state of layer cards
+            document.querySelectorAll('.layer-card').forEach(card => {
+                card.classList.remove('bg-primary-blue', 'text-white', 'shadow-primary-blue/50', 'dark:bg-primary-blue', 'dark:text-white');
+                card.classList.add('bg-white', 'hover:bg-gray-50', 'dark:bg-gray-800', 'dark:hover:bg-gray-700/50', 'text-gray-800', 'dark:text-gray-300', 'shadow-lg');
+            });
+
+            const currentCard = document.getElementById(`layer-card-${layerId}`);
+            if (currentCard) {
+                currentCard.classList.add('bg-primary-blue', 'text-white', 'shadow-primary-blue/50', 'dark:bg-primary-blue', 'dark:text-white');
+                currentCard.classList.remove('bg-white', 'hover:bg-gray-50', 'dark:bg-gray-800', 'dark:hover:bg-gray-700/50', 'text-gray-800', 'dark:text-gray-300', 'shadow-lg');
+            }
+
+            activeLayer = layerId;
+        }
+
+        /**
+         * Initializes the infographic.
+         */
+        function initInfographic() {
+            const layersPanel = document.getElementById('layers-panel');
+            let layersHtml = '';
+
+            // Generate all layer cards
+            osiLayers.forEach(layer => {
+                // Initialize with no layer active initially
+                layersHtml += generateLayerCard(layer, false);
+            });
+            layersPanel.innerHTML = layersHtml;
+
+            // Set the default active layer (Application Layer - 7)
+            showLayerDetails(7);
+        }
+
+        // Initialize the infographic when the window loads
+        window.onload = initInfographic;
+    </script>
+</body>
+</html>
